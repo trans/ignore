@@ -1,6 +1,6 @@
 # ignoreme
 
-TODO: Write a description here
+A .gitignore compatible pattern parser for Crystal.
 
 ## Installation
 
@@ -9,7 +9,7 @@ TODO: Write a description here
    ```yaml
    dependencies:
      ignoreme:
-       github: your-github-user/ignoreme
+       github: transfire/ignoreme
    ```
 
 2. Run `shards install`
@@ -18,22 +18,63 @@ TODO: Write a description here
 
 ```crystal
 require "ignoreme"
+
+# Parse gitignore content
+matcher = Ignoreme.parse(<<-GITIGNORE
+  build/
+  *.o
+  *.log
+  !important.log
+GITIGNORE
+)
+
+matcher.ignores?("build/")       # => true (directory)
+matcher.ignores?("main.o")       # => true
+matcher.ignores?("debug.log")    # => true
+matcher.ignores?("important.log") # => false (negated)
+
+# Quick one-liner
+Ignoreme.ignores?("foo.log", "*.log")  # => true
 ```
 
-TODO: Write usage instructions here
+### Directory Matching
 
-## Development
+Use a trailing slash to check directories:
 
-TODO: Write development instructions here
+```crystal
+matcher = Ignoreme.parse("build/")
+matcher.ignores?("build/")  # => true (directory)
+matcher.ignores?("build")   # => false (file)
+```
 
-## Contributing
+### Building Patterns Incrementally
 
-1. Fork it (<https://github.com/your-github-user/ignoreme/fork>)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
+```crystal
+matcher = Ignoreme::Matcher.new
+matcher.add("*.o")
+matcher.add("*.log")
+matcher.add("!important.log")
+matcher.ignores?("test.o")  # => true
+```
 
-## Contributors
+## Supported Patterns
 
-- [Thomas Sawyer](https://github.com/your-github-user) - creator and maintainer
+| Pattern | Description |
+|---------|-------------|
+| `*.txt` | Wildcard, matches any `.txt` file |
+| `?` | Single character wildcard |
+| `[abc]` | Character class |
+| `[a-z]` | Character range |
+| `[!abc]` | Negated character class |
+| `build/` | Directory only (trailing slash) |
+| `/root` | Anchored to root (leading slash) |
+| `foo/bar` | Anchored (contains slash) |
+| `!pattern` | Negation (un-ignore) |
+| `**/foo` | Match in all directories |
+| `foo/**` | Match everything inside |
+| `a/**/b` | Zero or more directories between |
+| `\#` `\!` | Escaped special characters |
+
+## License
+
+MIT
