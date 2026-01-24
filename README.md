@@ -88,35 +88,40 @@ matcher.add_file("src/.gitignore", base: "src/")
 
 ### Filtered Directory Operations
 
-Use `Dir.ignore` to get filtered directory listings and glob results:
+Use `Ignoreme::Dir` for filtered directory listings and glob results:
 
 ```crystal
-# Filter glob results by patterns
-Dir.ignore("*.log", "build/").glob("**/*")
-
-# Or start from a specific directory
-Dir.new("/path/to/project").ignore("*.log").glob("**/*")
-
-# Load patterns from .gitignore files automatically
-Dir.ignore(root: ".gitignore").glob("**/*")
-Dir.new("/path/to/project").ignore(root: ".gitignore").glob("**/*")
-
-# Load from a single ignore file
-Dir.ignore(file: ".gitignore").glob("**/*")
-```
-
-The returned `Ignoreme::Dir` also provides filtered versions of standard directory methods:
-
-```crystal
-dir = Dir.new("/path/to/project").ignore("*.log", "build/")
+dir = Ignoreme::Dir.new("/path/to/project", "*.log", "build/")
 
 dir.glob("**/*.cr")           # filtered glob
 dir.children                   # filtered directory children
 dir.entries                    # filtered entries (includes . and ..)
 dir.each_child { |entry| ... } # filtered iteration
+
+# Load patterns from .gitignore files automatically
+dir = Ignoreme::Dir.new("/path/to/project", root: ".gitignore")
+
+# Load from a single ignore file
+dir = Ignoreme::Dir.new("/path/to/project", file: ".gitignore")
 ```
 
 Directory patterns like `build/` will filter out the directory and all its contents.
+
+#### Dir Monkey Patch (Optional)
+
+For convenience, you can optionally load a monkey patch that adds `ignore` methods to `Dir`:
+
+```crystal
+require "ignoreme/ext/dir"
+
+# Class method (uses current directory)
+Dir.ignore("*.log", "build/").glob("**/*")
+Dir.ignore(root: ".gitignore").glob("**/*")
+
+# Instance method
+Dir.new("/path/to/project").ignore("*.log").glob("**/*")
+Dir.new("/path/to/project").ignore(root: ".gitignore").children
+```
 
 ## Supported Patterns
 
