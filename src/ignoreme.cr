@@ -2,7 +2,7 @@ require "./ignoreme/pattern"
 require "./ignoreme/dir"
 
 module Ignoreme
-  VERSION = "0.2.1"
+  VERSION = "0.3.0"
 
   # A collection of gitignore patterns that can match paths
   class Matcher
