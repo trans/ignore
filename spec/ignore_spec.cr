@@ -523,4 +523,184 @@ describe Ignore do
       end
     end
   end
+
+  describe Ignore::File do
+    around_each do |example|
+      Dir.mkdir_p("testproj")
+      example.run
+      FileUtils.rm_rf("testproj")
+    end
+
+    describe "initialization" do
+      it "loads patterns from existing file" do
+        File.write("testproj/.gitignore", "*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.patterns.should eq(["*.log", "build/"])
+      end
+
+      it "creates empty when file doesn't exist" do
+        file = Ignore::File.new("testproj/.newignore")
+        file.patterns.should be_empty
+        file.empty?.should be_true
+      end
+
+      it "raises when file doesn't exist and create: false" do
+        expect_raises(File::NotFoundError) do
+          Ignore::File.new("testproj/.nonexistent", create: false)
+        end
+      end
+
+      it "preserves comments and blank lines" do
+        File.write("testproj/.gitignore", "# Comment\n\n*.log\n")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.lines.should eq(["# Comment", "", "*.log"])
+        file.patterns.should eq(["*.log"])
+      end
+    end
+
+    describe "#path" do
+      it "returns the file path" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.path.should eq("testproj/.gitignore")
+      end
+    end
+
+    describe "#size and #empty?" do
+      it "returns pattern count excluding comments and blanks" do
+        File.write("testproj/.gitignore", "# Comment\n\n*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.size.should eq(2)
+        file.empty?.should be_false
+      end
+
+      it "empty? returns true when only comments/blanks" do
+        File.write("testproj/.gitignore", "# Comment\n\n")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.empty?.should be_true
+      end
+    end
+
+    describe "#add" do
+      it "adds a pattern" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log")
+        file.patterns.should eq(["*.log"])
+      end
+
+      it "returns self for chaining" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log").add("build/").patterns.should eq(["*.log", "build/"])
+      end
+    end
+
+    describe "#remove" do
+      it "removes a pattern" do
+        File.write("testproj/.gitignore", "*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.remove("*.log")
+        file.patterns.should eq(["build/"])
+      end
+
+      it "removes only first occurrence" do
+        File.write("testproj/.gitignore", "*.log\nbuild/\n*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.remove("*.log")
+        file.patterns.should eq(["build/", "*.log"])
+      end
+
+      it "returns self for chaining" do
+        File.write("testproj/.gitignore", "*.log\nbuild/\n*.tmp")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.remove("*.log").remove("build/").patterns.should eq(["*.tmp"])
+      end
+
+      it "does nothing if pattern not found" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.remove("*.tmp")
+        file.patterns.should eq(["*.log"])
+      end
+    end
+
+    describe "#includes?" do
+      it "returns true if pattern exists" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.includes?("*.log").should be_true
+      end
+
+      it "returns false if pattern doesn't exist" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.includes?("*.tmp").should be_false
+      end
+    end
+
+    describe "#clear" do
+      it "removes all lines" do
+        File.write("testproj/.gitignore", "# Comment\n*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.clear
+        file.lines.should be_empty
+        file.patterns.should be_empty
+      end
+
+      it "returns self for chaining" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log").clear.empty?.should be_true
+      end
+    end
+
+    describe "#ignores?" do
+      it "checks if path matches patterns" do
+        File.write("testproj/.gitignore", "*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.ignores?("debug.log").should be_true
+        file.ignores?("build/").should be_true
+        file.ignores?("src/main.cr").should be_false
+      end
+
+      it "reflects added patterns" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.ignores?("debug.log").should be_false
+        file.add("*.log")
+        file.ignores?("debug.log").should be_true
+      end
+
+      it "reflects removed patterns" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.ignores?("debug.log").should be_true
+        file.remove("*.log")
+        file.ignores?("debug.log").should be_false
+      end
+    end
+
+    describe "#save" do
+      it "saves to original path" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log").add("build/").save
+        File.read("testproj/.gitignore").should eq("*.log\nbuild/\n")
+      end
+
+      it "saves to different path" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log").save("testproj/.ignore")
+        File.read("testproj/.ignore").should eq("*.log\n")
+      end
+
+      it "preserves comments and blank lines" do
+        File.write("testproj/.gitignore", "# Comment\n\n*.log\n")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("build/").save
+        File.read("testproj/.gitignore").should eq("# Comment\n\n*.log\nbuild/\n")
+      end
+
+      it "returns self for chaining" do
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.log").save.add("build/").save
+        File.read("testproj/.gitignore").should eq("*.log\nbuild/\n")
+      end
+    end
+  end
 end

@@ -1,5 +1,6 @@
 require "./ignore/pattern"
 require "./ignore/dir"
+require "./ignore/file"
 
 module Ignore
   VERSION = "0.3.0"
@@ -30,8 +31,8 @@ module Ignore
 
     # Load patterns from a .gitignore file
     def add_file(path : String, base : String = "") : self
-      return self unless File.exists?(path)
-      parse(File.read(path), base)
+      return self unless ::File.exists?(path)
+      parse(::File.read(path), base)
     end
 
     # Check if a path should be ignored
@@ -83,8 +84,8 @@ module Ignore
     # Collect all ignore files with their relative base paths
     found_files = [] of Tuple(String, String) # {file_path, base_path}
 
-    ::Dir.glob(File.join(root, "**/#{ignore_file}"), match: :dot_files) do |file|
-      dir = File.dirname(file)
+    ::Dir.glob(::File.join(root, "**/#{ignore_file}"), match: :dot_files) do |file|
+      dir = ::File.dirname(file)
       base = dir == root ? "" : dir[(root.size + 1)..]
       found_files << {file, base}
     end
