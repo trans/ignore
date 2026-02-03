@@ -9,7 +9,9 @@ Notes for future development sessions.
 - **Shard name:** `ignore`
 - **GitHub:** `trans/ignore`
 - **Namespace:** `Ignore::`
-- **Current version:** 0.4.0
+- **Current version:** 0.4.1
+- **Website:** https://trans.github.io/ignore/
+- **API Docs:** https://trans.github.io/ignore/api/
 
 ## File Structure
 
@@ -38,10 +40,31 @@ src/
 - Tests use `around_each` with temp directories for isolation
 - Commit messages serve as changelog (keep them detailed)
 
+## Build Tasks
+
+Use `just` to run common tasks:
+
+- `just test` — run specs (default)
+- `just docs` — generate API docs
+- `just fmt` — format code
+- `just check` — format check + tests
+- `just release <version>` — check, tag, push
+
+## Docs Structure
+
+```
+docs/
+├── index.html   # Project website (GitHub Pages)
+└── api/         # Generated API docs (crystal docs)
+```
+
+Regenerate API docs with `just docs` before releases.
+
 ## History
 
 - v0.3.0: Original release as `ignoreme` with `Ignoreme::` namespace
 - v0.4.0: Renamed to `ignore` / `Ignore::`, added File class, Enumerable support, inverse filtering, reload, etc.
+- v0.4.1: Added project website, Justfile, and API documentation
 
 ## Future Ideas
 
