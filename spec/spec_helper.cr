@@ -1,3 +1,3 @@
 require "spec"
-require "../src/ignoreme"
-require "../src/ignoreme/ext/dir"
+require "../src/ignore"
+require "../src/ignore/ext/dir"

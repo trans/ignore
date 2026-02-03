@@ -1,4 +1,4 @@
-module Ignoreme
+module Ignore
   # A directory wrapper that filters results using gitignore patterns
   class Dir
     @matcher : Matcher
@@ -22,7 +22,7 @@ module Ignoreme
 
     # Initialize with path, loading patterns from ignore files in tree
     def initialize(@path : String, *, root : String)
-      @matcher = Ignoreme.from_directory(@path, root)
+      @matcher = Ignore.from_directory(@path, root)
     end
 
     # Initialize with path, loading patterns from a single file

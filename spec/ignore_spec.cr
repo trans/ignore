@@ -1,43 +1,43 @@
 require "./spec_helper"
 
-describe Ignoreme do
+describe Ignore do
   describe "VERSION" do
     it "has a version" do
-      Ignoreme::VERSION.should_not be_nil
+      Ignore::VERSION.should_not be_nil
     end
   end
 
-  describe Ignoreme::Pattern do
+  describe Ignore::Pattern do
     describe "basic patterns" do
       it "matches simple filename" do
-        pattern = Ignoreme::Pattern.new("foo.txt")
+        pattern = Ignore::Pattern.new("foo.txt")
         pattern.matches?("foo.txt").should be_true
         pattern.matches?("bar.txt").should be_false
       end
 
       it "matches at any depth when no slash" do
-        pattern = Ignoreme::Pattern.new("foo.txt")
+        pattern = Ignore::Pattern.new("foo.txt")
         pattern.matches?("foo.txt").should be_true
         pattern.matches?("a/foo.txt").should be_true
         pattern.matches?("a/b/foo.txt").should be_true
       end
 
       it "matches with * wildcard" do
-        pattern = Ignoreme::Pattern.new("*.txt")
+        pattern = Ignore::Pattern.new("*.txt")
         pattern.matches?("foo.txt").should be_true
         pattern.matches?("bar.txt").should be_true
         pattern.matches?("foo.log").should be_false
       end
 
       it "* does not match across directories" do
-        pattern = Ignoreme::Pattern.new("*.txt")
+        pattern = Ignore::Pattern.new("*.txt")
         pattern.matches?("a/b.txt").should be_true  # matches b.txt at any level
-        pattern = Ignoreme::Pattern.new("a*.txt")
+        pattern = Ignore::Pattern.new("a*.txt")
         pattern.matches?("a/b.txt").should be_false # a*.txt doesn't match a/b.txt
       end
 
       it "matches with ? wildcard" do
-        pattern = Ignoreme::Pattern.new("foo?.txt")
+        pattern = Ignore::Pattern.new("foo?.txt")
         pattern.matches?("foo1.txt").should be_true
         pattern.matches?("fooa.txt").should be_true
         pattern.matches?("foo.txt").should be_false
@@ -47,14 +47,14 @@ describe Ignoreme do
 
     describe "directory patterns" do
       it "trailing slash matches only directories" do
-        pattern = Ignoreme::Pattern.new("build/")
+        pattern = Ignore::Pattern.new("build/")
         pattern.directory_only?.should be_true
         pattern.matches?("build/").should be_true
         pattern.matches?("build").should be_false
       end
 
       it "trailing slash matches directories at any depth" do
-        pattern = Ignoreme::Pattern.new("build/")
+        pattern = Ignore::Pattern.new("build/")
         pattern.matches?("build/").should be_true
         pattern.matches?("a/build/").should be_true
         pattern.matches?("a/b/build/").should be_true
@@ -63,14 +63,14 @@ describe Ignoreme do
 
     describe "anchored patterns" do
       it "leading slash anchors to root" do
-        pattern = Ignoreme::Pattern.new("/foo.txt")
+        pattern = Ignore::Pattern.new("/foo.txt")
         pattern.anchored?.should be_true
         pattern.matches?("foo.txt").should be_true
         pattern.matches?("a/foo.txt").should be_false
       end
 
       it "middle slash anchors pattern" do
-        pattern = Ignoreme::Pattern.new("a/foo.txt")
+        pattern = Ignore::Pattern.new("a/foo.txt")
         pattern.anchored?.should be_true
         pattern.matches?("a/foo.txt").should be_true
         pattern.matches?("b/a/foo.txt").should be_false
@@ -79,13 +79,13 @@ describe Ignoreme do
 
     describe "negation" do
       it "detects negation" do
-        pattern = Ignoreme::Pattern.new("!important.txt")
+        pattern = Ignore::Pattern.new("!important.txt")
         pattern.negated?.should be_true
         pattern.matches?("important.txt").should be_true
       end
 
       it "escaped ! is not negation" do
-        pattern = Ignoreme::Pattern.new("\\!important.txt")
+        pattern = Ignore::Pattern.new("\\!important.txt")
         pattern.negated?.should be_false
         pattern.matches?("!important.txt").should be_true
       end
@@ -93,21 +93,21 @@ describe Ignoreme do
 
     describe "double asterisk **" do
       it "**/foo matches foo anywhere" do
-        pattern = Ignoreme::Pattern.new("**/foo")
+        pattern = Ignore::Pattern.new("**/foo")
         pattern.matches?("foo").should be_true
         pattern.matches?("a/foo").should be_true
         pattern.matches?("a/b/foo").should be_true
       end
 
       it "foo/** matches everything inside foo" do
-        pattern = Ignoreme::Pattern.new("foo/**")
+        pattern = Ignore::Pattern.new("foo/**")
         pattern.matches?("foo/a").should be_true
         pattern.matches?("foo/a/b").should be_true
         pattern.matches?("foo").should be_false
       end
 
       it "a/**/b matches zero or more directories between" do
-        pattern = Ignoreme::Pattern.new("a/**/b")
+        pattern = Ignore::Pattern.new("a/**/b")
         pattern.matches?("a/b").should be_true
         pattern.matches?("a/x/b").should be_true
         pattern.matches?("a/x/y/b").should be_true
@@ -116,7 +116,7 @@ describe Ignoreme do
 
     describe "character classes" do
       it "matches character class" do
-        pattern = Ignoreme::Pattern.new("[abc].txt")
+        pattern = Ignore::Pattern.new("[abc].txt")
         pattern.matches?("a.txt").should be_true
         pattern.matches?("b.txt").should be_true
         pattern.matches?("c.txt").should be_true
@@ -124,7 +124,7 @@ describe Ignoreme do
       end
 
       it "matches character range" do
-        pattern = Ignoreme::Pattern.new("[a-z].txt")
+        pattern = Ignore::Pattern.new("[a-z].txt")
         pattern.matches?("a.txt").should be_true
         pattern.matches?("m.txt").should be_true
         pattern.matches?("z.txt").should be_true
@@ -132,7 +132,7 @@ describe Ignoreme do
       end
 
       it "negated character class" do
-        pattern = Ignoreme::Pattern.new("[!abc].txt")
+        pattern = Ignore::Pattern.new("[!abc].txt")
         pattern.matches?("a.txt").should be_false
         pattern.matches?("d.txt").should be_true
         pattern.matches?("1.txt").should be_true
@@ -141,12 +141,12 @@ describe Ignoreme do
 
     describe "escaping" do
       it "escaped # is literal" do
-        pattern = Ignoreme::Pattern.new("\\#file")
+        pattern = Ignore::Pattern.new("\\#file")
         pattern.matches?("#file").should be_true
       end
 
       it "escaped * is literal" do
-        pattern = Ignoreme::Pattern.new("foo\\*.txt")
+        pattern = Ignore::Pattern.new("foo\\*.txt")
         pattern.matches?("foo*.txt").should be_true
         pattern.matches?("foobar.txt").should be_false
       end
@@ -154,7 +154,7 @@ describe Ignoreme do
 
     describe "base_path" do
       it "pattern with base_path only matches within that path" do
-        pattern = Ignoreme::Pattern.new("*.log", "src/")
+        pattern = Ignore::Pattern.new("*.log", "src/")
         pattern.base_path.should eq("src/")
         pattern.matches?("src/debug.log").should be_true
         pattern.matches?("src/sub/debug.log").should be_true
@@ -163,35 +163,35 @@ describe Ignoreme do
       end
 
       it "anchored pattern with base_path anchors to base" do
-        pattern = Ignoreme::Pattern.new("/build", "src/")
+        pattern = Ignore::Pattern.new("/build", "src/")
         pattern.matches?("src/build").should be_true
         pattern.matches?("src/sub/build").should be_false
         pattern.matches?("build").should be_false
       end
 
       it "normalizes base_path with trailing slash" do
-        pattern = Ignoreme::Pattern.new("*.log", "src")
+        pattern = Ignore::Pattern.new("*.log", "src")
         pattern.base_path.should eq("src/")
       end
     end
   end
 
-  describe Ignoreme::Matcher do
+  describe Ignore::Matcher do
     it "ignores comments" do
-      matcher = Ignoreme::Matcher.new
+      matcher = Ignore::Matcher.new
       matcher.add("# this is a comment")
       matcher.size.should eq(0)
     end
 
     it "ignores blank lines" do
-      matcher = Ignoreme::Matcher.new
+      matcher = Ignore::Matcher.new
       matcher.add("")
       matcher.add("   ")
       matcher.size.should eq(0)
     end
 
     it "applies patterns in order, last match wins" do
-      matcher = Ignoreme::Matcher.new
+      matcher = Ignore::Matcher.new
       matcher.add("*.txt")
       matcher.add("!important.txt")
       matcher.ignores?("foo.txt").should be_true
@@ -208,7 +208,7 @@ describe Ignoreme do
       !important.o
       GITIGNORE
 
-      matcher = Ignoreme.parse(content)
+      matcher = Ignore.parse(content)
       matcher.ignores?("build/").should be_true
       matcher.ignores?("foo.o").should be_true
       matcher.ignores?("important.o").should be_false
@@ -216,14 +216,14 @@ describe Ignoreme do
 
     describe "hierarchical patterns" do
       it "add with base restricts pattern to subtree" do
-        matcher = Ignoreme::Matcher.new
+        matcher = Ignore::Matcher.new
         matcher.add("*.log", "src/")
         matcher.ignores?("src/debug.log").should be_true
         matcher.ignores?("debug.log").should be_false
       end
 
       it "parse with base restricts all patterns to subtree" do
-        matcher = Ignoreme::Matcher.new
+        matcher = Ignore::Matcher.new
         matcher.parse("*.log\n*.tmp", "src/")
         matcher.ignores?("src/debug.log").should be_true
         matcher.ignores?("src/cache.tmp").should be_true
@@ -231,7 +231,7 @@ describe Ignoreme do
       end
 
       it "deeper patterns take precedence" do
-        matcher = Ignoreme::Matcher.new
+        matcher = Ignore::Matcher.new
         matcher.add("*.log")           # ignore all .log files
         matcher.add("!debug.log", "src/")  # but not debug.log in src/
         matcher.ignores?("app.log").should be_true
@@ -242,15 +242,15 @@ describe Ignoreme do
   end
 
   describe "module-level API" do
-    it "Ignoreme.parse returns a Matcher" do
-      matcher = Ignoreme.parse("*.txt")
-      matcher.should be_a(Ignoreme::Matcher)
+    it "Ignore.parse returns a Matcher" do
+      matcher = Ignore.parse("*.txt")
+      matcher.should be_a(Ignore::Matcher)
       matcher.ignores?("foo.txt").should be_true
     end
 
-    it "Ignoreme.ignores? provides quick check" do
-      Ignoreme.ignores?("foo.txt", "*.txt").should be_true
-      Ignoreme.ignores?("foo.log", "*.txt").should be_false
+    it "Ignore.ignores? provides quick check" do
+      Ignore.ignores?("foo.txt", "*.txt").should be_true
+      Ignore.ignores?("foo.log", "*.txt").should be_false
     end
   end
 
@@ -258,7 +258,7 @@ describe Ignoreme do
     it "add_file loads patterns from a file" do
       Dir.cd(Dir.tempdir) do
         File.write(".gitignore", "*.log\n*.tmp")
-        matcher = Ignoreme::Matcher.new
+        matcher = Ignore::Matcher.new
         matcher.add_file(".gitignore")
         matcher.ignores?("debug.log").should be_true
         matcher.ignores?("cache.tmp").should be_true
@@ -270,7 +270,7 @@ describe Ignoreme do
     it "add_file with base restricts to subtree" do
       Dir.cd(Dir.tempdir) do
         File.write("test.gitignore", "*.log")
-        matcher = Ignoreme::Matcher.new
+        matcher = Ignore::Matcher.new
         matcher.add_file("test.gitignore", "src/")
         matcher.ignores?("src/debug.log").should be_true
         matcher.ignores?("debug.log").should be_false
@@ -279,7 +279,7 @@ describe Ignoreme do
     end
 
     it "add_file returns self for missing files" do
-      matcher = Ignoreme::Matcher.new
+      matcher = Ignore::Matcher.new
       matcher.add_file("/nonexistent/.gitignore")
       matcher.size.should eq(0)
     end
@@ -293,7 +293,7 @@ describe Ignoreme do
         File.write("testproj/src/.gitignore", "*.tmp\n!important.tmp")
         File.write("testproj/src/lib/.gitignore", "!debug.log")
 
-        matcher = Ignoreme.from_directory("testproj")
+        matcher = Ignore.from_directory("testproj")
 
         # Root patterns apply everywhere
         matcher.ignores?("app.log").should be_true
@@ -318,7 +318,7 @@ describe Ignoreme do
     end
   end
 
-  describe Ignoreme::Dir do
+  describe Ignore::Dir do
     around_each do |example|
       Dir.cd(Dir.tempdir) do
         # Create test directory structure
@@ -349,20 +349,20 @@ describe Ignoreme do
 
     describe "initialization" do
       it "initializes with path and patterns" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         dir.path.should eq("testproj")
         dir.ignores?("debug.log").should be_true
       end
 
       it "initializes with multiple patterns" do
-        dir = Ignoreme::Dir.new("testproj", "*.log", "*.o")
+        dir = Ignore::Dir.new("testproj", "*.log", "*.o")
         dir.ignores?("debug.log").should be_true
         dir.ignores?("output.o").should be_true
       end
 
       it "initializes with file: parameter" do
         File.write("testproj/.gitignore", "*.log")
-        dir = Ignoreme::Dir.new("testproj", file: "testproj/.gitignore")
+        dir = Ignore::Dir.new("testproj", file: "testproj/.gitignore")
         dir.ignores?("debug.log").should be_true
         File.delete("testproj/.gitignore")
       end
@@ -370,7 +370,7 @@ describe Ignoreme do
       it "initializes with root: parameter" do
         File.write("testproj/.gitignore", "*.log")
         File.write("testproj/src/.gitignore", "!app.log")
-        dir = Ignoreme::Dir.new("testproj", root: ".gitignore")
+        dir = Ignore::Dir.new("testproj", root: ".gitignore")
         dir.ignores?("debug.log").should be_true
         dir.ignores?("src/app.log").should be_false
         File.delete("testproj/src/.gitignore")
@@ -380,7 +380,7 @@ describe Ignoreme do
 
     describe "#glob" do
       it "returns files not matching ignore patterns" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         results = dir.glob("**/*").map { |p| p.sub("testproj/", "") }.sort
         results.should contain("main.cr")
         results.should contain("src/app.cr")
@@ -389,14 +389,14 @@ describe Ignoreme do
       end
 
       it "filters directories and their contents" do
-        dir = Ignoreme::Dir.new("testproj", "build/")
+        dir = Ignore::Dir.new("testproj", "build/")
         results = dir.glob("**/*").map { |p| p.sub("testproj/", "") }
         results.should_not contain("build/output.o")
         results.should contain("main.cr")
       end
 
       it "yields to block" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         results = [] of String
         dir.glob("**/*.cr") { |p| results << p }
         results.size.should be > 0
@@ -406,7 +406,7 @@ describe Ignoreme do
 
     describe "#children" do
       it "returns filtered children of base directory" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         children = dir.children
         children.should contain("main.cr")
         children.should contain("src")
@@ -414,7 +414,7 @@ describe Ignoreme do
       end
 
       it "filters directories" do
-        dir = Ignoreme::Dir.new("testproj", "build/")
+        dir = Ignore::Dir.new("testproj", "build/")
         children = dir.children
         children.should contain("src")
         children.should_not contain("build")
@@ -423,7 +423,7 @@ describe Ignoreme do
 
     describe "#entries" do
       it "returns filtered entries including . and .." do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         entries = dir.entries
         entries.should contain(".")
         entries.should contain("..")
@@ -434,7 +434,7 @@ describe Ignoreme do
 
     describe "#each_child" do
       it "yields filtered children" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         children = [] of String
         dir.each_child { |c| children << c }
         children.should contain("main.cr")
@@ -444,7 +444,7 @@ describe Ignoreme do
 
     describe "#add" do
       it "adds patterns and returns self" do
-        dir = Ignoreme::Dir.new("testproj", "*.log")
+        dir = Ignore::Dir.new("testproj", "*.log")
         dir.add("*.o").should be(dir)
         dir.ignores?("output.o").should be_true
       end
@@ -452,7 +452,7 @@ describe Ignoreme do
 
     describe "parent directory filtering" do
       it "filters files inside ignored directories" do
-        dir = Ignoreme::Dir.new("testproj", "src/")
+        dir = Ignore::Dir.new("testproj", "src/")
         results = dir.glob("**/*").map { |p| p.sub("testproj/", "") }
         results.should_not contain("src/app.cr")
         results.should_not contain("src/lib/util.cr")
@@ -480,9 +480,9 @@ describe Ignoreme do
     end
 
     describe "class methods" do
-      it "Dir.ignore returns Ignoreme::Dir" do
+      it "Dir.ignore returns Ignore::Dir" do
         dir = Dir.ignore("*.log")
-        dir.should be_a(Ignoreme::Dir)
+        dir.should be_a(Ignore::Dir)
       end
 
       it "Dir.ignore with patterns uses current directory" do
@@ -503,9 +503,9 @@ describe Ignoreme do
     end
 
     describe "instance methods" do
-      it "Dir#ignore returns Ignoreme::Dir with Dir's path" do
+      it "Dir#ignore returns Ignore::Dir with Dir's path" do
         dir = Dir.new("testproj").ignore("*.log")
-        dir.should be_a(Ignoreme::Dir)
+        dir.should be_a(Ignore::Dir)
         dir.path.should eq("testproj")
       end
 

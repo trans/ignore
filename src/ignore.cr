@@ -1,7 +1,7 @@
-require "./ignoreme/pattern"
-require "./ignoreme/dir"
+require "./ignore/pattern"
+require "./ignore/dir"
 
-module Ignoreme
+module Ignore
   VERSION = "0.3.0"
 
   # A collection of gitignore patterns that can match paths

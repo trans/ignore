@@ -1,4 +1,4 @@
-module Ignoreme
+module Ignore
   # Represents a single gitignore pattern
   class Pattern
     getter pattern : String
