@@ -7,6 +7,8 @@ module Ignore
 
   # A collection of gitignore patterns that can match paths
   class Matcher
+    include Enumerable(String)
+
     @patterns : Array(Pattern)
 
     def initialize
@@ -49,6 +51,16 @@ module Ignore
       result
     end
 
+    # Returns the pattern strings
+    def patterns : Array(String)
+      @patterns.map(&.pattern)
+    end
+
+    # Iterate over pattern strings
+    def each(& : String ->) : Nil
+      @patterns.each { |p| yield p.pattern }
+    end
+
     # Returns the number of patterns
     def size : Int32
       @patterns.size
@@ -57,6 +69,12 @@ module Ignore
     # Check if matcher has any patterns
     def empty? : Bool
       @patterns.empty?
+    end
+
+    # Remove all patterns
+    def clear : self
+      @patterns.clear
+      self
     end
   end
 

@@ -239,6 +239,58 @@ describe Ignore do
         matcher.ignores?("src/debug.log").should be_false
       end
     end
+
+    describe "#patterns" do
+      it "returns pattern strings" do
+        matcher = Ignore::Matcher.new
+        matcher.add("*.log")
+        matcher.add("build/")
+        matcher.patterns.should eq(["*.log", "build/"])
+      end
+
+      it "excludes comments and blank lines" do
+        matcher = Ignore::Matcher.new
+        matcher.add("# comment")
+        matcher.add("")
+        matcher.add("*.log")
+        matcher.patterns.should eq(["*.log"])
+      end
+    end
+
+    describe "#clear" do
+      it "removes all patterns" do
+        matcher = Ignore::Matcher.new
+        matcher.add("*.log")
+        matcher.add("build/")
+        matcher.clear
+        matcher.size.should eq(0)
+        matcher.empty?.should be_true
+      end
+
+      it "returns self for chaining" do
+        matcher = Ignore::Matcher.new
+        matcher.add("*.log").clear.add("*.tmp").size.should eq(1)
+      end
+    end
+
+    describe "Enumerable" do
+      it "supports each" do
+        matcher = Ignore::Matcher.new
+        matcher.add("*.log")
+        matcher.add("build/")
+        patterns = [] of String
+        matcher.each { |p| patterns << p }
+        patterns.should eq(["*.log", "build/"])
+      end
+
+      it "supports Enumerable methods" do
+        matcher = Ignore::Matcher.new
+        matcher.add("*.log")
+        matcher.add("build/")
+        matcher.add("*.tmp")
+        matcher.select { |p| p.starts_with?("*") }.should eq(["*.log", "*.tmp"])
+      end
+    end
   end
 
   describe "module-level API" do
@@ -457,6 +509,67 @@ describe Ignore do
         results.should_not contain("src/app.cr")
         results.should_not contain("src/lib/util.cr")
         results.should contain("main.cr")
+      end
+    end
+
+    describe "#glob with match option" do
+      it "passes match option to underlying glob" do
+        File.write("testproj/.hidden", "hidden")
+        dir = Ignore::Dir.new("testproj", "*.log")
+        results = dir.glob("*", match: :dot_files).map { |p| p.sub("testproj/", "") }
+        results.should contain(".hidden")
+        File.delete("testproj/.hidden")
+      end
+    end
+
+    describe "inverse filtering" do
+      it "#ignored_children returns only ignored entries" do
+        dir = Ignore::Dir.new("testproj", "*.log", "build/")
+        ignored = dir.ignored_children
+        ignored.should contain("debug.log")
+        ignored.should contain("build")
+        ignored.should_not contain("main.cr")
+        ignored.should_not contain("src")
+      end
+
+      it "#ignored_entries returns only ignored entries with . and .." do
+        dir = Ignore::Dir.new("testproj", "*.log")
+        ignored = dir.ignored_entries
+        ignored.should contain("debug.log")
+        ignored.should_not contain(".")
+        ignored.should_not contain("..")
+      end
+
+      it "#ignored_glob returns only ignored paths" do
+        dir = Ignore::Dir.new("testproj", "*.log")
+        results = dir.ignored_glob("**/*").map { |p| p.sub("testproj/", "") }
+        results.should contain("debug.log")
+        results.should contain("src/app.log")
+        results.should_not contain("main.cr")
+      end
+
+      it "#each_ignored_child yields only ignored children" do
+        dir = Ignore::Dir.new("testproj", "*.log")
+        ignored = [] of String
+        dir.each_ignored_child { |c| ignored << c }
+        ignored.should contain("debug.log")
+        ignored.should_not contain("main.cr")
+      end
+    end
+
+    describe "Enumerable" do
+      it "supports each (iterates non-ignored children)" do
+        dir = Ignore::Dir.new("testproj", "*.log")
+        children = [] of String
+        dir.each { |c| children << c }
+        children.should contain("main.cr")
+        children.should_not contain("debug.log")
+      end
+
+      it "supports Enumerable methods" do
+        dir = Ignore::Dir.new("testproj", "*.log")
+        cr_files = dir.select { |c| c.ends_with?(".cr") }
+        cr_files.should contain("main.cr")
       end
     end
   end
@@ -700,6 +813,59 @@ describe Ignore do
         file = Ignore::File.new("testproj/.gitignore")
         file.add("*.log").save.add("build/").save
         File.read("testproj/.gitignore").should eq("*.log\nbuild/\n")
+      end
+    end
+
+    describe "#reload" do
+      it "reloads from disk" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.patterns.should eq(["*.log"])
+
+        # Modify file externally
+        File.write("testproj/.gitignore", "*.tmp\nbuild/")
+        file.reload
+        file.patterns.should eq(["*.tmp", "build/"])
+      end
+
+      it "discards unsaved changes" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.add("*.tmp")
+        file.patterns.should eq(["*.log", "*.tmp"])
+        file.reload
+        file.patterns.should eq(["*.log"])
+      end
+
+      it "returns self for chaining" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        file.reload.add("*.tmp").patterns.should eq(["*.log", "*.tmp"])
+      end
+
+      it "clears patterns if file was deleted" do
+        File.write("testproj/.gitignore", "*.log")
+        file = Ignore::File.new("testproj/.gitignore")
+        File.delete("testproj/.gitignore")
+        file.reload
+        file.patterns.should be_empty
+      end
+    end
+
+    describe "Enumerable" do
+      it "supports each (iterates over patterns only)" do
+        File.write("testproj/.gitignore", "# Comment\n\n*.log\nbuild/")
+        file = Ignore::File.new("testproj/.gitignore")
+        patterns = [] of String
+        file.each { |p| patterns << p }
+        patterns.should eq(["*.log", "build/"])
+      end
+
+      it "supports Enumerable methods" do
+        File.write("testproj/.gitignore", "*.log\nbuild/\n*.tmp")
+        file = Ignore::File.new("testproj/.gitignore")
+        wildcards = file.select { |p| p.starts_with?("*") }
+        wildcards.should eq(["*.log", "*.tmp"])
       end
     end
   end

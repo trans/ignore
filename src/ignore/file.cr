@@ -1,6 +1,8 @@
 module Ignore
   # Represents an ignore file (like .gitignore) that can be read, modified, and saved
   class File
+    include Enumerable(String)
+
     @path : String
     @lines : Array(String)
     @matcher : Matcher?
@@ -42,6 +44,11 @@ module Ignore
       !@lines.any? { |line| pattern?(line) }
     end
 
+    # Iterate over pattern strings (Enumerable support)
+    def each(& : String ->) : Nil
+      @lines.each { |line| yield line if pattern?(line) }
+    end
+
     # Add a pattern (appends to end)
     def add(pattern : String) : self
       @lines << pattern
@@ -66,6 +73,17 @@ module Ignore
     # Remove all lines (patterns, comments, and blanks)
     def clear : self
       @lines.clear
+      @matcher = nil
+      self
+    end
+
+    # Reload from disk (discards unsaved changes)
+    def reload : self
+      if ::File.exists?(@path)
+        @lines = ::File.read_lines(@path)
+      else
+        @lines = [] of String
+      end
       @matcher = nil
       self
     end
